@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -22,6 +21,8 @@ func createFile(content string, path string) {
 
 	// creating a file
 	myFile, err := os.Create(path)
+	defer myFile.Close()
+
 	if err != nil {
 		fmt.Println("not good.")
 	}
@@ -34,15 +35,13 @@ func createFile(content string, path string) {
 
 	fmt.Println("length is: ", length)
 
-	defer myFile.Close()
-
 	readFile(path)
 
 }
 
 func readFile(path string) {
 
-	dataByte, err := ioutil.ReadFile(path)
+	dataByte, err := os.ReadFile(path)
 
 	if err != nil {
 		panic("something went wrong.")

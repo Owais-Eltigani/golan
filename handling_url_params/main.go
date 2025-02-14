@@ -40,5 +40,5 @@ func main() {
 
 	constructed_url := url_infos.String()
 
-	fmt.Printf("\nurl is: %v\n", constructed_url)
+	fmt.Printf("\new nurl is: %v\n", constructed_url)
 }
