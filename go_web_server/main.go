@@ -16,12 +16,12 @@ func main() {
 	router := mux.NewRouter()
 	PORT := ":5000"
 
-	router.HandleFunc("/", servHome).Methods("GET")                          /* cspell:disable-line */
-	router.HandleFunc("/courses", getAllCourses).Methods("GET")              /* cspell:disable-line */
-	router.HandleFunc("/course/{courseid}", getCourseById).Methods("GET")    /* cspell:disable-line */
-	router.HandleFunc("/course", addNewCourse).Methods("POST")               /* cspell:disable-line */
-	router.HandleFunc("/course/{courseid}", updateCourseById).Methods("PUT") /* cspell:disable-line */
-	router.HandleFunc("/course/{courseid}", deleteById).Methods("DELETE")    /* cspell:disable-line */
+	router.HandleFunc("/", ServHome).Methods("GET")                          /* cspell:disable-line */
+	router.HandleFunc("/courses", GetAllCourses).Methods("GET")              /* cspell:disable-line */
+	router.HandleFunc("/course/{courseid}", GetCourseById).Methods("GET")    /* cspell:disable-line */
+	router.HandleFunc("/course", AddNewCourse).Methods("POST")               /* cspell:disable-line */
+	router.HandleFunc("/course/{courseid}", UpdateCourseById).Methods("PUT") /* cspell:disable-line */
+	router.HandleFunc("/course/{courseid}", DeleteById).Methods("DELETE")    /* cspell:disable-line */
 
 	// server Listener
 	log.Fatal(http.ListenAndServe(PORT, router))

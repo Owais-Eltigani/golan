@@ -8,14 +8,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var Courses = []Course{
-	{"1", "ReactJS", 299, &Author{"John Doe", "http://johndoe.com"}},
-	{"2", "NodeJS", 199, &Author{"Jane Smith", "http://janesmith.com"}},
-	{"3", "Angular", 299, &Author{"Bob Wilson", "http://bobwilson.com"}},
-}
-
 // API controllers
-func servHome(wtr http.ResponseWriter, req *http.Request) { /* cspell:disable-line */
+func ServHome(wtr http.ResponseWriter, req *http.Request) { /* cspell:disable-line */
 
 	fmt.Printf("welcoming new users.\n")
 	// main page msg:
@@ -32,7 +26,7 @@ func (course *Course) isEmpty() bool {
 	return string(course.CourseId) == "" && course.CourseName == ""
 }
 
-func getAllCourses(wtr http.ResponseWriter, req *http.Request) {
+func GetAllCourses(wtr http.ResponseWriter, req *http.Request) {
 
 	fmt.Printf("retrieving all Courses.\n")
 	// retrieving all Courses
@@ -52,7 +46,7 @@ func getAllCourses(wtr http.ResponseWriter, req *http.Request) {
 
 }
 
-func getCourseById(wtr http.ResponseWriter, req *http.Request) {
+func GetCourseById(wtr http.ResponseWriter, req *http.Request) {
 
 	fmt.Printf("asking for one course.\n")
 
@@ -85,7 +79,7 @@ func linearSearch(courseid string, Courses ...Course) int {
 
 }
 
-func addNewCourse(wtr http.ResponseWriter, req *http.Request) {
+func AddNewCourse(wtr http.ResponseWriter, req *http.Request) {
 
 	fmt.Printf("adding new course to the db.\n")
 	wtr.Header().Set("Content-Type", "application/json")
@@ -108,7 +102,7 @@ func addNewCourse(wtr http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	Courses := append(Courses, course)
+	Courses = append(Courses, course)
 
 	json.NewEncoder(wtr).Encode(Courses)
 
@@ -117,7 +111,7 @@ func addNewCourse(wtr http.ResponseWriter, req *http.Request) {
 
 }
 
-func updateCourseById(wtr http.ResponseWriter, req *http.Request) {
+func UpdateCourseById(wtr http.ResponseWriter, req *http.Request) {
 
 	fmt.Printf("updating one course by id.\n")
 
@@ -148,7 +142,7 @@ func updateCourseById(wtr http.ResponseWriter, req *http.Request) {
 
 }
 
-func deleteById(wtr http.ResponseWriter, req *http.Request) {
+func DeleteById(wtr http.ResponseWriter, req *http.Request) {
 
 	wtr.Header().Set("Content-Type", "application/json")
 
@@ -175,7 +169,7 @@ func deleteById(wtr http.ResponseWriter, req *http.Request) {
 
 	}
 
-	Courses := append(Courses[:courseIndex], Courses[courseIndex+1:]...)
+	Courses = append(Courses[:courseIndex], Courses[courseIndex+1:]...)
 	fmt.Printf("Courses deletion done.\nCourses: %#v\n", Courses)
 
 	msg := fmt.Sprintf("course deleted, Courses now: %#v\n", Courses)
