@@ -44,7 +44,7 @@ func postData(url string) {
 
 	// }
 
-	// stringfying the data.
+	// stringifying the data.
 	content := strings.NewReader(`
 	{
 	"id":"110",

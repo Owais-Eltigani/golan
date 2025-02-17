@@ -1,31 +1,28 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/gorilla/mux"
+)
 
 func main() {
 
-	fmt.Println("this is a GO web server.")
-}
+	fmt.Println("this is a GO web server running... ")
 
-// creating the type for the courses
-type Course struct {
-	Price      float32 `json:"price"`
-	CourseId   string  `json:"courseid"`
-	CourseName string  `json:"coursename"`
-	Aurhor     *Author
-}
+	//
+	router := mux.NewRouter()
+	PORT := ":5000"
 
-// the author type
-type Author struct {
-	Name  string `json:"authorname"`
-	Books []string
-}
+	router.HandleFunc("/", ServHome).Methods("GET")                          /* cspell:disable-line */
+	router.HandleFunc("/courses", GetAllCourses).Methods("GET")              /* cspell:disable-line */
+	router.HandleFunc("/course/{courseid}", GetCourseById).Methods("GET")    /* cspell:disable-line */
+	router.HandleFunc("/course", AddNewCourse).Methods("POST")               /* cspell:disable-line */
+	router.HandleFunc("/course/{courseid}", UpdateCourseById).Methods("PUT") /* cspell:disable-line */
+	router.HandleFunc("/course/{courseid}", DeleteById).Methods("DELETE")    /* cspell:disable-line */
 
-// temporary DB
-var course []Course
-
-// middleware to check there is a course name & id
-
-func (course *Course) isValid() bool {
-	return course.CourseId != "" && course.CourseName != ""
+	// server Listener
+	log.Fatal(http.ListenAndServe(PORT, router))
 }
