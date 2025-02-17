@@ -21,12 +21,14 @@ func main() {
 
 		// dealing with edge cases.
 
-		// if req.URL.Path != "/hello" {
-		// 	fmt.Println("wrong route {hello}")
+		fmt.Println("url is", req.URL.Path)
 
-		// 	http.Error(wtr, "page not found 404", http.StatusNotFound)
-		// 	return
-		// }
+		if req.URL.Path != "/hello" {
+			fmt.Println("wrong route {hello}")
+
+			http.Error(wtr, "page not found 404 {hello}", http.StatusNotFound)
+			return
+		}
 
 		if req.Method != "GET" {
 
