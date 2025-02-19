@@ -32,14 +32,16 @@ func main() {
 
 	defer DB.Close()
 
-	// routes
-	http.HandleFunc("/books", GetAllBooks)
-	http.HandleFunc("/book/add-book", AddBook)
-	http.HandleFunc("/book/delete", DeleteById) // Access ID using r.URL.Query().Get("id")
-	http.HandleFunc("/book/update", UpdateById) // Access ID using r.URL.Query().Get("id")
-	http.HandleFunc("/book", GetBookById)
+	server := http.NewServeMux()
 
-	if err := http.ListenAndServe(os.Getenv("PORT"), nil); err != nil {
+	// routes
+	server.HandleFunc("GET /books", GetAllBooks)
+	server.HandleFunc("POST /book/add-book", AddBook)
+	server.HandleFunc("DELETE /book/delete", DeleteById) // Access ID using r.URL.Query().Get("id")
+	server.HandleFunc("PUT /book/update", UpdateById)    // Access ID using r.URL.Query().Get("id")
+	server.HandleFunc("GET /book", GetBookById)
+
+	if err := http.ListenAndServe(os.Getenv("PORT"), server); err != nil {
 
 		// check if everything is ok
 		fmt.Println("server is not working", err)
