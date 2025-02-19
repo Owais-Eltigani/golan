@@ -122,3 +122,16 @@ INSERT INTO `Authors` (author_id, name, books_publish, birth_date) VALUES
 (45, 'John Milton', 1, '1608-12-09'),
 (46, 'Virgil', 1, '70-10-15');
 
+
+SELECT book_name FROM books WHERE book_id = 2
+UNION
+SELECT name FROM authors WHERE author_id = (SELECT author_id FROM books WHERE book_id = 2);
+
+SELECT book_name FROM books WHERE book_id = 2
+NATURAL JOIN SELECT name FROM authors WHERE author_id = book_id
+
+SELECT b.book_id,b.book_name, b.price, b.publish_date, a.name as author_name
+FROM books b
+JOIN authors a ON b.author_id = a.author_id
+WHERE b.book_id = 2;
+

@@ -46,3 +46,12 @@ func main() {
 	wg.Wait()
 	fmt.Printf("score: %v", score)
 }
+
+/* val, err := something()
+
+if !err {
+	fmt.Println("err is", err)
+}
+
+Printf("val is", val)
+*/

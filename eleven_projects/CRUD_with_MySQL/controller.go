@@ -1,31 +1,29 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 )
 
-type Book struct {
-	Title         string `json:"title"`
-	Id            string `json:"id"`
-	NumberOfPages int32  `json:"numberOfPages, omitempty"`
-	Author        *Author
+type BOOK struct {
+	Id          string
+	Name        string
+	AuthorName  string
+	Price       string
+	PublishDate string
 }
 
-type Author struct {
-	Name     string `json:"name"`
-	AuthorId string `json:"authorid"`
-	Books    []Book
-}
+//! =================================================
 
-var books []Book
+var DB *sql.DB
 
 // homepage get all books
 func GetAllBooks(wtr http.ResponseWriter, req *http.Request) {
 
 	// deal with edge cases.
-
 	if req.Method != "GET" {
 		fmt.Println("bad gateway {books}")
 		return
@@ -34,7 +32,32 @@ func GetAllBooks(wtr http.ResponseWriter, req *http.Request) {
 	// getting all books
 	fmt.Println("getting all books")
 
-	json.NewEncoder(wtr).Encode(books)
+	// query
+	query, err := DB.Query("SELECT B.book_id, B.book_name, A.name, B.price, B.publish_date FROM BOOKS B JOIN AUTHORS A USING(AUTHOR_ID)")
+	defer query.Close()
+
+	if err != nil {
+		fmt.Println("error while retreiving books")
+		http.Error(wtr, "error while retreiving books", http.StatusNotFound)
+		return
+	}
+
+	var queryBooks []BOOK
+	for query.Next() {
+
+		var bookData BOOK
+		if err := query.Scan(&bookData.Id, &bookData.Name, &bookData.AuthorName, &bookData.Price, &bookData.PublishDate); err != nil {
+			fmt.Println("error while parsing books details")
+			http.Error(wtr, "error while parsingg books details", http.StatusNotFound)
+			return
+
+		}
+
+		queryBooks = append(queryBooks, bookData)
+		fmt.Println("books retreived successfully.")
+	}
+
+	json.NewEncoder(wtr).Encode(queryBooks)
 
 }
 
@@ -57,7 +80,7 @@ func AddBook(wtr http.ResponseWriter, req *http.Request) {
 	}
 
 	// decoding the body
-	var book Book
+	var book BOOK
 	json.NewDecoder(req.Body).Decode(&book)
 
 	// check if the book is already in the DB
@@ -69,14 +92,61 @@ func AddBook(wtr http.ResponseWriter, req *http.Request) {
 	}
 
 	// check is valid id [exist in DB]
-	index := linearSearch(book.Id)
-	if index != -1 {
-		fmt.Println("book already exist")
-		wtr.Write([]byte("book already exist"))
+
+	query, err := DB.Query("SELECT book_name FROM BOOKS WHERE book_id = " + book.Id)
+	defer query.Close()
+
+	if err != nil {
+		fmt.Println("error while getting one book.")
+		wtr.Write([]byte("error while getting one book."))
 		return
 	}
 
-	books = append(books, book)
+	for query.Next() {
+		var isValid sql.NullString
+		err := query.Scan(&isValid)
+
+		if err != nil {
+			fmt.Println("error is: ", err)
+			return
+
+		}
+		if val, _ := isValid.Value(); val != "" {
+			fmt.Println("book with id already exist.")
+			wtr.Write([]byte("book with id already exist."))
+			return
+		}
+	}
+	myBook := struct {
+		bookID      string
+		bookName    string
+		price       string
+		publishDate string
+		authorId    string
+	}{
+		bookID:      book.Id,
+		bookName:    book.Name,
+		price:       book.Price,
+		publishDate: book.PublishDate,
+		authorId:    book.AuthorName,
+	}
+
+	stmt, err := DB.Prepare("INSERT INTO BOOKS (book_id, book_name, price, publish_date, author_id) VALUES (?, ?, ?, ?, ?)")
+	if err != nil {
+		fmt.Println("error preparing statement:", err)
+		http.Error(wtr, "error preparing statement", http.StatusInternalServerError)
+		return
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(myBook.bookID, myBook.bookName, myBook.price, myBook.publishDate, myBook.authorId)
+	if err != nil {
+		fmt.Println("error executing insert:", err)
+		http.Error(wtr, "error inserting book", http.StatusInternalServerError)
+		return
+	}
+
 	fmt.Println("book added", book)
 
 	json.NewEncoder(wtr).Encode(book)
@@ -89,7 +159,7 @@ func DeleteById(wtr http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/book/delete" {
 
 		fmt.Println("wrong url")
-		wtr.Write([]byte("bad gate way"))
+		wtr.Write([]byte("wrong url"))
 		return
 	}
 
@@ -109,19 +179,42 @@ func DeleteById(wtr http.ResponseWriter, req *http.Request) {
 	}
 
 	// check is valid id [exist in DB]
+	query, err := DB.Query("SELECT book_name FROM BOOKS where book_id = " + id)
+	defer query.Close()
 
-	index := linearSearch(id)
-	if index == -1 {
-		fmt.Println("not valid id")
-		wtr.Write([]byte("not valid id"))
+	if err != nil {
+		fmt.Println("error while getting book info.")
+		wtr.Write([]byte("error while getting book info."))
 		return
 	}
 
-	books = append(books[:index], books[index+1:]...)
-	fmt.Println("book deleted")
-	json.NewEncoder(wtr).Encode(books)
+	var isValid sql.NullString
+
+	if query.Next() {
+		err := query.Scan(&isValid)
+
+		if err != nil {
+			fmt.Println("error is: ", err)
+			return
+
+		}
+	}
+
+	if !isValid.Valid {
+		fmt.Println("book with doesn't exist.", isValid)
+		wtr.Write([]byte("book with id already exist."))
+		return
+
+	}
+
+	deleteQuery, err := DB.Query("DELETE FROM BOOKS WHERE book_id = " + id)
+	defer deleteQuery.Close()
+
+	fmt.Println("book is deleted", isValid.Valid)
+	wtr.Write([]byte("book is deleted"))
 
 }
+
 func UpdateById(wtr http.ResponseWriter, req *http.Request) {
 
 	// check the url is correct
@@ -156,7 +249,7 @@ func UpdateById(wtr http.ResponseWriter, req *http.Request) {
 	}
 
 	// decoding the body
-	var book Book
+	var book BOOK
 	json.NewDecoder(req.Body).Decode(&book)
 
 	// check if the book is already in the DB
@@ -168,17 +261,52 @@ func UpdateById(wtr http.ResponseWriter, req *http.Request) {
 	}
 
 	// check is valid id [exist in DB]
+	query, err := DB.Query("SELECT book_name FROM BOOKS where book_id = " + id)
+	defer query.Close()
 
-	index := linearSearch(id)
-	if index == -1 {
-		fmt.Println("not valid id")
-		wtr.Write([]byte("not valid id"))
+	if err != nil {
+		fmt.Println("error while getting book info.")
+		wtr.Write([]byte("error while getting book info."))
 		return
 	}
 
-	books[index] = book
-	fmt.Println("book updated")
-	json.NewEncoder(wtr).Encode(books)
+	var isValid sql.NullString
+
+	if query.Next() {
+		err := query.Scan(&isValid)
+
+		if err != nil {
+			fmt.Println("error is: ", err)
+			return
+
+		}
+	}
+
+	if !isValid.Valid {
+		fmt.Println("book with id doesn't exist.", isValid)
+		wtr.Write([]byte("book with id doesn't exist."))
+		return
+	}
+
+	// Prepare update statement
+	stmt, err := DB.Prepare("UPDATE BOOKS SET book_name=?, price=?, publish_date=?, author_id=? ,book_id=? WHERE book_id=?")
+	if err != nil {
+		fmt.Println("error preparing update statement:", err)
+		http.Error(wtr, "error preparing update statement", http.StatusInternalServerError)
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the update
+	_, err = stmt.Exec(book.Name, book.Price, book.PublishDate, book.AuthorName, book.Id, id)
+	if err != nil {
+		fmt.Println("error executing update:", err)
+		http.Error(wtr, "error updating book", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println("book updated successfully")
+	json.NewEncoder(wtr).Encode(book)
 
 }
 
@@ -205,51 +333,49 @@ func GetBookById(wtr http.ResponseWriter, req *http.Request) {
 	}
 
 	// check is valid id [exist in DB]
+	query, err := DB.Query("SELECT B.book_id, B.book_name, B.price, B.publish_date, A.name FROM BOOKS B JOIN AUTHORS A ON B.book_id = A.author_id  WHERE book_id = " + id)
+	defer query.Close()
 
-	index := linearSearch(id)
-	if index == -1 {
-		fmt.Println("not valid id")
-		wtr.Write([]byte("not valid id"))
+	if err != nil {
+		fmt.Println("error while getting book info.\n", err)
+		wtr.Write([]byte("error while getting book info."))
 		return
 	}
 
-	json.NewEncoder(wtr).Encode(books[index])
-	fmt.Println("book retrieved.")
+	var book BOOK
+
+	for query.Next() {
+		err := query.Scan(&book.Id, &book.Name, &book.Price, &book.PublishDate, &book.AuthorName)
+
+		if err != nil {
+			fmt.Println("error while parsing the file: ", err)
+			return
+
+		}
+
+	}
+
+	fmt.Println("book was fetched deleted")
+	json.NewEncoder(wtr).Encode(book)
 
 }
 
 //? ============== helper functions =====================
 
-// auto initialize the the slice of
-func init() {
-	books = []Book{
-		{Title: "The Great Gatsby", Id: "1", NumberOfPages: 180, Author: &Author{Name: "F. Scott Fitzgerald", AuthorId: "A1"}},
-		{Title: "1984", Id: "2", NumberOfPages: 328, Author: &Author{Name: "George Orwell", AuthorId: "A2"}},
-		{Title: "To Kill a Mockingbird", Id: "3", NumberOfPages: 281, Author: &Author{Name: "Harper Lee", AuthorId: "A3"}},
-		{Title: "Pride and Prejudice", Id: "4", NumberOfPages: 432, Author: &Author{Name: "Jane Austen", AuthorId: "A4"}},
-		{Title: "The Catcher in the Rye", Id: "5", NumberOfPages: 234, Author: &Author{Name: "J.D. Salinger", AuthorId: "A5"}},
-		{Title: "Lord of the Flies", Id: "6", NumberOfPages: 224, Author: &Author{Name: "William Golding", AuthorId: "A6"}},
-		{Title: "The Hobbit", Id: "7", NumberOfPages: 310, Author: &Author{Name: "J.R.R. Tolkien", AuthorId: "A7"}},
-		{Title: "Fahrenheit 451", Id: "8", NumberOfPages: 249, Author: &Author{Name: "Ray Bradbury", AuthorId: "A8"}},
-		{Title: "Animal Farm", Id: "9", NumberOfPages: 141, Author: &Author{Name: "George Orwell", AuthorId: "A2"}},
-		{Title: "Brave New World", Id: "10", NumberOfPages: 311, Author: &Author{Name: "Aldous Huxley", AuthorId: "A9"}},
-	}
+func (b *BOOK) isEmpty(book *BOOK) bool {
+
+	return book.Id == "" || book.AuthorName == ""
 }
 
-func (b *Book) isEmpty(book *Book) bool {
+func DBconnect() *sql.DB {
 
-	return book.Id == "" || book.Author.Name == ""
-}
+	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/library")
 
-func linearSearch(id string) int {
-
-	for index, book := range books {
-
-		if book.Id == id {
-			return index
-		}
+	if err != nil {
+		fmt.Println("couldn't connect to db.")
+		log.Fatal("couldn't connect to db.")
 	}
 
-	return -1
-
+	fmt.Println("db connected successfully. ")
+	return db
 }
