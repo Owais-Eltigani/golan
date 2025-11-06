@@ -135,13 +135,13 @@ func deleteAllMovies() int64 {
 func getAllMovies() ([]primitive.M, error) {
 
 	cursor, err := collection.Find(context.Background(), bson.M{})
-	defer cursor.Close(context.Background())
 	var movies []primitive.M
 
 	if err != nil {
 		log.Fatal("something went wrong while fetching movies.\n", err, movies)
 		return movies, err
 	}
+	defer cursor.Close(context.Background())
 
 	for cursor.Next(context.Background()) {
 

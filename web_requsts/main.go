@@ -15,10 +15,10 @@ func main() {
 	// starting the request.
 	response, err := http.Get(URL)
 	errCheck(err)
-
-	fmt.Printf("the response type is %T,", response)
 	// always close the connection.
 	defer response.Body.Close()
+
+	fmt.Printf("the response type is %T,", response)
 
 	// reading the actual data.
 	dataByte, err := io.ReadAll(response.Body) // ioutil.ReadAll(response.Body)

@@ -34,13 +34,13 @@ func GetAllBooks(wtr http.ResponseWriter, req *http.Request) {
 
 	// query
 	query, err := DB.Query("SELECT B.book_id, B.book_name, A.name, B.price, B.publish_date FROM BOOKS B JOIN AUTHORS A USING(AUTHOR_ID)")
-	defer query.Close()
 
 	if err != nil {
 		fmt.Println("error while retreiving books")
 		http.Error(wtr, "error while retreiving books", http.StatusNotFound)
 		return
 	}
+	defer query.Close()
 
 	var queryBooks []BOOK
 	for query.Next() {
@@ -94,13 +94,13 @@ func AddBook(wtr http.ResponseWriter, req *http.Request) {
 	// check is valid id [exist in DB]
 
 	query, err := DB.Query("SELECT book_name FROM BOOKS WHERE book_id = " + book.Id)
-	defer query.Close()
 
 	if err != nil {
 		fmt.Println("error while getting one book.")
 		wtr.Write([]byte("error while getting one book."))
 		return
 	}
+	defer query.Close()
 
 	for query.Next() {
 		var isValid sql.NullString
@@ -180,13 +180,13 @@ func DeleteById(wtr http.ResponseWriter, req *http.Request) {
 
 	// check is valid id [exist in DB]
 	query, err := DB.Query("SELECT book_name FROM BOOKS where book_id = " + id)
-	defer query.Close()
 
 	if err != nil {
 		fmt.Println("error while getting book info.")
 		wtr.Write([]byte("error while getting book info."))
 		return
 	}
+	defer query.Close()
 
 	var isValid sql.NullString
 
@@ -207,7 +207,7 @@ func DeleteById(wtr http.ResponseWriter, req *http.Request) {
 
 	}
 
-	deleteQuery, err := DB.Query("DELETE FROM BOOKS WHERE book_id = " + id)
+	deleteQuery, _ := DB.Query("DELETE FROM BOOKS WHERE book_id = " + id)
 	defer deleteQuery.Close()
 
 	fmt.Println("book is deleted", isValid.Valid)
@@ -262,13 +262,13 @@ func UpdateById(wtr http.ResponseWriter, req *http.Request) {
 
 	// check is valid id [exist in DB]
 	query, err := DB.Query("SELECT book_name FROM BOOKS where book_id = " + id)
-	defer query.Close()
 
 	if err != nil {
 		fmt.Println("error while getting book info.")
 		wtr.Write([]byte("error while getting book info."))
 		return
 	}
+	defer query.Close()
 
 	var isValid sql.NullString
 
@@ -334,13 +334,13 @@ func GetBookById(wtr http.ResponseWriter, req *http.Request) {
 
 	// check is valid id [exist in DB]
 	query, err := DB.Query("SELECT B.book_id, B.book_name, B.price, B.publish_date, A.name FROM BOOKS B JOIN AUTHORS A ON B.book_id = A.author_id  WHERE book_id = " + id)
-	defer query.Close()
 
 	if err != nil {
 		fmt.Println("error while getting book info.\n", err)
 		wtr.Write([]byte("error while getting book info."))
 		return
 	}
+	defer query.Close()
 
 	var book BOOK
 
